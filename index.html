@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-ADUAN - Sistem Aduan Awam Neo-Brutalist Minimalist</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Space Grotesk & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            yellow: '#FFE600',
+                            mint: '#00F0FF',
+                            pink: '#FF6B6B',
+                            lime: '#A3FFD6',
+                            purple: '#D8B4F8',
+                            bg: '#F4F4F0',
+                            card: '#FFFFFF',
+                            black: '#000000'
+                        }
+                    },
+                    fontFamily: {
+                        heading: ['Space Grotesk', 'sans-serif'],
+                        body: ['Plus Jakarta Sans', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'neo-sm': '2px 2px 0px 0px #000000',
+                        'neo': '4px 4px 0px 0px #000000',
+                        'neo-lg': '6px 6px 0px 0px #000000'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #F4F4F0;
+            background-image: radial-gradient(#000000 0.8px, transparent 0.8px);
+            background-size: 16px 16px;
+        }
+
+        h1, h2, h3, h4, .font-heading {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .neo-border {
+            border: 3px solid #000000;
+        }
+
+        .neo-btn {
+            border: 3px solid #000000;
+            box-shadow: 4px 4px 0px 0px #000000;
+            transition: all 0.1s ease-in-out;
+        }
+
+        .neo-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px 0px #000000;
+        }
+
+        .neo-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px 0px #000000;
+        }
+
+        .neo-input {
+            border: 3px solid #000000;
+            box-shadow: 3px 3px 0px 0px #000000;
+            transition: all 0.1s ease;
+        }
+
+        .neo-input:focus {
+            outline: none;
+            background-color: #FFFDF0;
+            box-shadow: 5px 5px 0px 0px #000000;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F4F4F0;
+            border-left: 3px solid #000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #FFE600;
+            border: 3px solid #000;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-black antialiased selection:bg-brand-yellow selection:text-black">
+
+    <!-- Header Navigation -->
+    <header class="bg-white neo-border border-t-0 border-x-0 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Logo -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('submit')">
+                <div class="w-12 h-12 bg-brand-yellow neo-border flex items-center justify-center font-heading font-extrabold text-2xl shadow-neo">
+                    E
+                </div>
+                <div>
+                    <span class="font-heading text-2xl font-black tracking-tight block leading-none">E-ADUAN</span>
+                    <span class="text-xs font-bold uppercase tracking-wider bg-black text-white px-1.5 py-0.5 inline-block mt-0.5">Neo-Brutalist</span>
+                </div>
+            </div>
+
+            <!-- Desktop Nav Buttons -->
+            <nav class="hidden md:flex items-center gap-3">
+                <button onclick="switchTab('submit')" id="nav-submit" class="nav-btn bg-brand-yellow neo-btn px-4 py-2 font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square"></i> Buat Aduan
+                </button>
+                <button onclick="switchTab('track')" id="nav-track" class="nav-btn bg-white neo-btn px-4 py-2 font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-magnifying-glass"></i> Semak Status
+                </button>
+                <button onclick="openAdminAuthModal()" id="nav-admin" class="nav-btn bg-brand-mint neo-btn px-4 py-2 font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-user-shield"></i> Dashboard Admin
+                </button>
+            </nav>
+
+            <!-- Mobile Menu Toggle -->
+            <div class="md:hidden flex items-center">
+                <button onclick="toggleMobileMenu()" class="bg-brand-yellow neo-border p-2 font-bold">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobileMenu" class="hidden md:hidden bg-white neo-border border-x-0 border-b-4 p-4 space-y-2">
+            <button onclick="switchTab('submit'); toggleMobileMenu()" class="w-full text-left font-bold p-3 bg-brand-yellow neo-border flex items-center gap-2">
+                <i class="fa-solid fa-pen-to-square"></i> Buat Aduan
+            </button>
+            <button onclick="switchTab('track'); toggleMobileMenu()" class="w-full text-left font-bold p-3 bg-white neo-border flex items-center gap-2">
+                <i class="fa-solid fa-magnifying-glass"></i> Semak Status
+            </button>
+            <button onclick="openAdminAuthModal(); toggleMobileMenu()" class="w-full text-left font-bold p-3 bg-brand-mint neo-border flex items-center gap-2">
+                <i class="fa-solid fa-user-shield"></i> Dashboard Admin
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- TAB 1: SUBMIT ADUAN (FORM & PREVIEW) -->
+        <section id="tab-submit" class="tab-content max-w-2xl mx-auto">
+            
+            <!-- STEP 1: FORM INPUT -->
+            <div id="formStep" class="bg-white neo-border shadow-neo-lg p-6 sm:p-8">
+                <!-- Header Banner -->
+                <div class="bg-brand-yellow neo-border p-4 mb-6 shadow-neo-sm">
+                    <h1 class="text-2xl sm:text-3xl font-black font-heading uppercase tracking-tight">Borang Aduan Awam</h1>
+                    <p class="text-xs sm:text-sm font-semibold mt-1">Sila isi maklumat yang diperlukan di bawah untuk tindakan lanjut.</p>
+                </div>
+
+                <!-- Form -->
+                <form id="aduanForm" onsubmit="showPreview(event)" class="space-y-5">
+                    
+                    <!-- Nama -->
+                    <div>
+                        <label class="block font-heading font-bold text-sm uppercase mb-1">Nama Penuh <span class="text-red-500">*</span></label>
+                        <input type="text" id="nama" required placeholder="Contoh: Ahmad bin Ismail" 
+                            class="w-full neo-input px-4 py-3 font-semibold text-sm">
+                    </div>
+
+                    <!-- No Telefon -->
+                    <div>
+                        <label class="block font-heading font-bold text-sm uppercase mb-1">Nombor Telefon <span class="text-red-500">*</span></label>
+                        <input type="tel" id="no_fon" required placeholder="Contoh: 012-3456789" 
+                            class="w-full neo-input px-4 py-3 font-semibold text-sm">
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label class="block font-heading font-bold text-sm uppercase mb-1">Emel (Salinan PDF akan dihantar) <span class="text-red-500">*</span></label>
+                        <input type="email" id="email" required placeholder="nama@domain.com" 
+                            class="w-full neo-input px-4 py-3 font-semibold text-sm">
+                    </div>
+
+                    <!-- Jenis Aduan -->
+                    <div>
+                        <label class="block font-heading font-bold text-sm uppercase mb-1">Jenis Aduan <span class="text-red-500">*</span></label>
+                        <select id="jenis_aduan" required class="w-full neo-input px-4 py-3 font-bold text-sm bg-white cursor-pointer">
+                            <option value="" disabled selected>-- Pilih Jenis Aduan --</option>
+                            <option value="Kerosakan Infrastruktur">Kerosakan Infrastruktur (Jalan, Lampu, Longkang)</option>
+                            <option value="Kebersihan & Sampah">Kebersihan & Kutipan Sampah</option>
+                            <option value="Aduan Perkhidmatan">Mutu Perkhidmatan / Kaunter</option>
+                            <option value="Isu Gangguan / Bising">Gangguan Ketenteraman / Bunyi Bising</option>
+                            <option value="Lain-lain">Lain-lain Kategori</option>
+                        </select>
+                    </div>
+
+                    <!-- Keterangan Tambahan -->
+                    <div>
+                        <label class="block font-heading font-bold text-sm uppercase mb-1">Butiran / Keterangan Aduan <span class="text-red-500">*</span></label>
+                        <textarea id="keterangan" rows="4" required placeholder="Jelaskan butiran aduan anda dengan teliti..." 
+                            class="w-full neo-input px-4 py-3 font-semibold text-sm"></textarea>
+                    </div>
+
+                    <!-- Next to Preview Button -->
+                    <button type="submit" class="w-full bg-brand-yellow neo-btn py-4 font-heading font-extrabold text-base uppercase tracking-wider flex items-center justify-center gap-2 mt-4">
+                        <i class="fa-solid fa-eye"></i> Semak Pratonton Aduan
+                    </button>
+                </form>
+            </div>
+
+            <!-- STEP 2: PREVIEW SCREEN (HIDDEN BY DEFAULT) -->
+            <div id="previewStep" class="bg-white neo-border shadow-neo-lg p-6 sm:p-8 hidden">
+                <div class="bg-brand-mint neo-border p-4 mb-6 shadow-neo-sm flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-black font-heading uppercase tracking-tight">Pratonton Maklumat Aduan</h2>
+                        <p class="text-xs font-bold mt-1">Sila pastikan maklumat di bawah adalah betul sebelum menghantar.</p>
+                    </div>
+                    <span class="bg-black text-white text-xs font-black px-2 py-1 uppercase">Langkah 2 / 2</span>
+                </div>
+
+                <div class="space-y-4 bg-gray-50 neo-border p-5 mb-6 text-sm">
+                    <div>
+                        <span class="text-xs font-bold uppercase text-gray-500 block">Nama Penuh</span>
+                        <span id="prev-nama" class="font-bold text-base"></span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-xs font-bold uppercase text-gray-500 block">Nombor Telefon</span>
+                            <span id="prev-nofon" class="font-bold"></span>
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold uppercase text-gray-500 block">Alamat Emel</span>
+                            <span id="prev-email" class="font-bold"></span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold uppercase text-gray-500 block">Kategori Aduan</span>
+                        <span id="prev-jenis" class="font-bold inline-block bg-brand-yellow neo-border px-2 py-0.5 text-xs"></span>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold uppercase text-gray-500 block">Butiran Aduan</span>
+                        <p id="prev-keterangan" class="font-medium bg-white neo-border p-3 mt-1 text-xs leading-relaxed italic"></p>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-100 neo-border p-3 mb-6 text-xs font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-envelope-circle-check text-xl text-yellow-700"></i>
+                    <span>Salinan PDF aduan ini akan dihantar secara automatik ke emel anda selepas disahkan!</span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button type="button" onclick="backToForm()" class="sm:w-1/3 bg-gray-200 neo-btn py-3 font-heading font-bold text-sm uppercase flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-pen"></i> Edit Semula
+                    </button>
+                    <button type="button" id="btnFinalSubmit" onclick="submitFinalAduan()" class="sm:w-2/3 bg-brand-yellow neo-btn py-3 font-heading font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-paper-plane"></i> Sah & Hantar Aduan
+                    </button>
+                </div>
+            </div>
+
+        </section>
+
+
+        <!-- TAB 2: SEMAK STATUS ADUAN -->
+        <section id="tab-track" class="tab-content max-w-2xl mx-auto hidden">
+            <div class="bg-white neo-border shadow-neo-lg p-6 sm:p-8">
+                <div class="bg-brand-mint neo-border p-4 mb-6 shadow-neo-sm">
+                    <h2 class="text-2xl font-black font-heading uppercase tracking-tight">Semak Status Aduan</h2>
+                    <p class="text-xs sm:text-sm font-semibold mt-1">Masukkan No. Rujukan Aduan atau Nombor Telefon anda.</p>
+                </div>
+
+                <form onsubmit="handleSearch(event)" class="space-y-4">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="text" id="searchInput" placeholder="Cth: ADU-8492 atau 012-3456789" required
+                            class="flex-1 neo-input px-4 py-3 font-semibold text-sm">
+                        <button type="submit" class="bg-brand-yellow neo-btn px-6 py-3 font-heading font-bold text-sm uppercase flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-magnifying-glass"></i> Cari
+                        </button>
+                    </div>
+                </form>
+
+                <div id="searchResults" class="mt-8 space-y-4">
+                    <div class="text-center py-8 text-gray-500 font-semibold border-2 border-dashed border-black p-4">
+                        <i class="fa-solid fa-inbox text-3xl mb-2 block"></i>
+                        Sila buat carian menggunakan No Rujukan atau No Telefon.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- TAB 3: DASHBOARD ADMIN -->
+        <section id="tab-admin" class="tab-content hidden">
+            <div class="space-y-6">
+                <!-- Admin Header & Stats -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white neo-border p-6 shadow-neo">
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-2xl font-black font-heading uppercase">Papan Pemuka Pentadbir</h2>
+                            <span class="bg-black text-white text-xs font-bold uppercase px-2 py-1 flex items-center gap-1">
+                                <i class="fa-solid fa-lock text-brand-yellow"></i> Terkunci
+                            </span>
+                        </div>
+                        <p class="text-xs font-bold text-gray-600 mt-1">Pengurusan & Pengemaskinian Status Aduan Awam (Google Sheets Live Sync)</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="fetchSheetData()" class="bg-brand-mint neo-btn text-xs px-3 py-2 font-bold uppercase flex items-center gap-1">
+                            <i class="fa-solid fa-arrows-rotate"></i> Muat Semula Data
+                        </button>
+                        <button onclick="logoutAdmin()" class="bg-brand-pink neo-btn text-xs px-3 py-2 font-bold uppercase flex items-center gap-1">
+                            <i class="fa-solid fa-right-from-bracket"></i> Log Keluar Admin
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Metrics Overview -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-brand-yellow neo-border p-4 shadow-neo">
+                        <span class="text-xs font-bold uppercase block text-gray-800">Jumlah Aduan</span>
+                        <span id="stat-total" class="font-heading text-3xl font-black">0</span>
+                    </div>
+                    <div class="bg-brand-pink neo-border p-4 shadow-neo">
+                        <span class="text-xs font-bold uppercase block text-gray-800">Baru (Pending)</span>
+                        <span id="stat-baru" class="font-heading text-3xl font-black">0</span>
+                    </div>
+                    <div class="bg-brand-purple neo-border p-4 shadow-neo">
+                        <span class="text-xs font-bold uppercase block text-gray-800">Sedang Diproses</span>
+                        <span id="stat-proses" class="font-heading text-3xl font-black">0</span>
+                    </div>
+                    <div class="bg-brand-lime neo-border p-4 shadow-neo">
+                        <span class="text-xs font-bold uppercase block text-gray-800">Selesai</span>
+                        <span id="stat-selesai" class="font-heading text-3xl font-black">0</span>
+                    </div>
+                </div>
+
+                <!-- Complaints Table -->
+                <div class="bg-white neo-border shadow-neo overflow-hidden">
+                    <div class="p-4 border-b-3 border-black bg-gray-50 flex justify-between items-center">
+                        <h3 class="font-heading font-extrabold uppercase text-sm">Senarai Semua Aduan Masuk (Google Sheets)</h3>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm border-collapse">
+                            <thead>
+                                <tr class="bg-black text-white font-heading uppercase text-xs">
+                                    <th class="p-3 border-r border-gray-700">No Rujukan</th>
+                                    <th class="p-3 border-r border-gray-700">Pengadu</th>
+                                    <th class="p-3 border-r border-gray-700">No. Telefon & Emel</th>
+                                    <th class="p-3 border-r border-gray-700">Jenis Aduan</th>
+                                    <th class="p-3 border-r border-gray-700">Keterangan</th>
+                                    <th class="p-3 border-r border-gray-700">Status</th>
+                                    <th class="p-3 text-center">Tindakan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminTableBody" class="divide-y-2 divide-black font-medium">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Success Submission -->
+    <div id="successModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white neo-border shadow-neo-lg max-w-md w-full p-6 text-center">
+            <div class="w-16 h-16 bg-brand-lime neo-border rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-black">
+                ✓
+            </div>
+            <h3 class="font-heading text-2xl font-black uppercase">Aduan Berjaya Dihantar!</h3>
+            <p class="text-sm font-bold mt-2 text-gray-700">Sila simpan No. Rujukan di bawah untuk semakan status aduan anda.</p>
+            
+            <div class="my-4 bg-brand-yellow neo-border p-3">
+                <span class="text-xs font-bold uppercase block text-gray-700">No. Rujukan Aduan</span>
+                <span id="modalRefId" class="font-heading text-2xl font-black tracking-wider select-all">ADU-0000</span>
+            </div>
+
+            <p class="text-xs font-semibold text-green-700 bg-green-100 neo-border p-2 mb-4">
+                <i class="fa-solid fa-file-pdf mr-1"></i> Salinan PDF aduan telah dihantar ke emel anda!
+            </p>
+
+            <button onclick="closeModal()" class="w-full bg-black text-white neo-btn py-3 font-heading font-bold uppercase text-sm">
+                Tutup & Kembali
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Admin Security Password -->
+    <div id="adminAuthModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white neo-border shadow-neo-lg max-w-sm w-full p-6 text-center">
+            <div class="w-12 h-12 bg-brand-yellow neo-border flex items-center justify-center mx-auto mb-3 font-black text-xl shadow-neo-sm">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h3 class="font-heading text-xl font-black uppercase">Akses Pentadbir</h3>
+            <p class="text-xs font-bold mt-1 text-gray-600 mb-4">Sila masukkan kata laluan keselamatan untuk mengakses Dashboard Admin.</p>
+            
+            <form onsubmit="handleAdminAuth(event)" class="space-y-4">
+                <div>
+                    <input type="password" id="adminPasswordInput" placeholder="Masukkan Katalaluan Admin" required
+                        class="w-full neo-input px-4 py-3 font-bold text-center text-sm">
+                </div>
+                
+                <p id="authErrorMsg" class="text-xs font-bold text-red-600 hidden uppercase bg-red-100 p-2 neo-border">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Kata laluan salah!
+                </p>
+
+                <div class="flex gap-2">
+                    <button type="button" onclick="closeAdminAuthModal()" class="w-1/2 bg-gray-200 neo-btn py-2.5 font-heading font-bold text-xs uppercase">
+                        Batal
+                    </button>
+                    <button type="submit" class="w-1/2 bg-brand-yellow neo-btn py-2.5 font-heading font-bold text-xs uppercase">
+                        Masuk
+                    </button>
+                </div>
+            </form>
+            <p class="text-[10px] text-gray-500 font-bold mt-4 uppercase">Katalaluan Laluan Tempoh: <span class="bg-yellow-200 px-1 border border-black">1234-</span></p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white neo-border border-b-0 border-x-0 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 text-center font-bold text-xs">
+            <p>© 2026 E-ADUAN AWAM — Antaramuka Neo-Brutalist Minimalist</p>
+        </div>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        // Google Apps Script Web App Macro URL
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzOXA5LevCkMVD34lItz5MZouYa_5unQBhBRlyT-0nBrdoRbuNWhF2Y47hjAsR2OecK/exec";
+        
+        // Published Google Sheets CSV URL for Live Fetching
+        const CSV_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTeL5H_skkW5VXS5kb1SOBQo-am7ztf_dMyr_SQ436bcRU6ObraxWvfIUDRM-W-KRIX5wpjcL2TKFu9/pub?gid=2140810929&single=true&output=csv";
+
+        // Admin Security Credential
+        const ADMIN_PASSWORD = "1234-";
+        let isAdminAuthenticated = false;
+
+        // Holding temporary preview payload
+        let pendingAduanData = null;
+
+        // Sample Initial Complaints Data
+        const defaultAduan = [
+            {
+                id: 'ADU-8492',
+                nama: 'Siti Aminah',
+                no_fon: '019-8765432',
+                email: 'siti.aminah@gmail.com',
+                jenis_aduan: 'Kerosakan Infrastruktur',
+                keterangan: 'Lampu jalan berhampiran simpang 3 Taman Bunga mati sejak 3 hari lepas.',
+                status: 'Baru',
+                tarikh: '2026-10-24 09:30 AM'
+            }
+        ];
+
+        // State Management
+        let aduanList = JSON.parse(localStorage.getItem('eaduan_data')) || defaultAduan;
+
+        // CSV Parser
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            if (lines.length <= 1) return [];
+
+            const result = [];
+            for (let i = 1; i < lines.length; i++) {
+                const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(val => val.replace(/^"|"$/g, '').trim());
+                if (row.length >= 8) {
+                    result.push({
+                        tarikh: row[0] || '',
+                        id: row[1] || '',
+                        nama: row[2] || '',
+                        no_fon: row[3] || '',
+                        email: row[4] || '',
+                        jenis_aduan: row[5] || '',
+                        keterangan: row[6] || '',
+                        status: row[7] || 'Baru'
+                    });
+                }
+            }
+            return result;
+        }
+
+        // Fetch live sheet data
+        async function fetchSheetData() {
+            try {
+                const csvRes = await fetch(CSV_SHEET_URL);
+                if (csvRes.ok) {
+                    const csvText = await csvRes.text();
+                    const parsedData = parseCSV(csvText);
+                    if (parsedData.length > 0) {
+                        aduanList = parsedData;
+                        localStorage.setItem('eaduan_data', JSON.stringify(aduanList));
+                        updateAdminStats();
+                        renderAdminTable();
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.log('CSV fetch failed, trying Apps Script GET endpoint...', err);
+            }
+
+            if (APPS_SCRIPT_URL) {
+                try {
+                    const res = await fetch(APPS_SCRIPT_URL);
+                    const result = await res.json();
+                    if (result.status === 'success' && result.data) {
+                        aduanList = result.data;
+                        localStorage.setItem('eaduan_data', JSON.stringify(aduanList));
+                        updateAdminStats();
+                        renderAdminTable();
+                    }
+                } catch (err) {
+                    console.log('Apps Script fetch failed:', err);
+                }
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('eaduan_data', JSON.stringify(aduanList));
+            updateAdminStats();
+            renderAdminTable();
+        }
+
+        // Admin Security Auth
+        function openAdminAuthModal() {
+            if (isAdminAuthenticated) {
+                switchTab('admin');
+            } else {
+                document.getElementById('adminPasswordInput').value = '';
+                document.getElementById('authErrorMsg').classList.add('hidden');
+                document.getElementById('adminAuthModal').classList.remove('hidden');
+            }
+        }
+
+        function closeAdminAuthModal() {
+            document.getElementById('adminAuthModal').classList.add('hidden');
+        }
+
+        function handleAdminAuth(event) {
+            event.preventDefault();
+            const pwd = document.getElementById('adminPasswordInput').value;
+            if (pwd === ADMIN_PASSWORD) {
+                isAdminAuthenticated = true;
+                closeAdminAuthModal();
+                switchTab('admin');
+            } else {
+                document.getElementById('authErrorMsg').classList.remove('hidden');
+            }
+        }
+
+        function logoutAdmin() {
+            isAdminAuthenticated = false;
+            switchTab('submit');
+        }
+
+        // Navigation Switcher
+        function switchTab(tabName) {
+            if (tabName === 'admin' && !isAdminAuthenticated) {
+                openAdminAuthModal();
+                return;
+            }
+
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-brand-yellow', 'bg-brand-mint'));
+            
+            if (tabName === 'submit') {
+                document.getElementById('nav-submit').classList.add('bg-brand-yellow');
+                backToForm();
+            } else if (tabName === 'track') {
+                document.getElementById('nav-track').classList.add('bg-brand-yellow');
+            } else if (tabName === 'admin') {
+                document.getElementById('nav-admin').classList.add('bg-brand-mint');
+                fetchSheetData();
+            }
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+        }
+
+        // STEP 1 -> STEP 2: SHOW PREVIEW
+        function showPreview(event) {
+            event.preventDefault();
+
+            const nama = document.getElementById('nama').value.trim();
+            const no_fon = document.getElementById('no_fon').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const jenis_aduan = document.getElementById('jenis_aduan').value;
+            const keterangan = document.getElementById('keterangan').value.trim();
+
+            pendingAduanData = { nama, no_fon, email, jenis_aduan, keterangan };
+
+            // Inject into preview element
+            document.getElementById('prev-nama').textContent = nama;
+            document.getElementById('prev-nofon').textContent = no_fon;
+            document.getElementById('prev-email').textContent = email;
+            document.getElementById('prev-jenis').textContent = jenis_aduan;
+            document.getElementById('prev-keterangan').textContent = keterangan;
+
+            // Toggle screens
+            document.getElementById('formStep').classList.add('hidden');
+            document.getElementById('previewStep').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function backToForm() {
+            document.getElementById('previewStep').classList.add('hidden');
+            document.getElementById('formStep').classList.remove('hidden');
+        }
+
+        // STEP 2: FINAL SUBMIT TO GOOGLE APPS SCRIPT
+        async function submitFinalAduan() {
+            if (!pendingAduanData) return;
+
+            const submitBtn = document.getElementById('btnFinalSubmit');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menghantar & Menjana PDF Emel...`;
+
+            const randomNum = Math.floor(1000 + Math.random() * 9000);
+            const refId = `ADU-${randomNum}`;
+
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0] + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const newAduan = {
+                id: refId,
+                ...pendingAduanData,
+                status: 'Baru',
+                tarikh: dateStr
+            };
+
+            // Post to Google Apps Script
+            if (APPS_SCRIPT_URL) {
+                try {
+                    await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newAduan)
+                    });
+                } catch (e) {
+                    console.error("Gagal hantar ke Google Sheets / Apps Script:", e);
+                }
+            }
+
+            aduanList.unshift(newAduan);
+            saveData();
+
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+
+            // Show Success Modal
+            document.getElementById('modalRefId').textContent = refId;
+            document.getElementById('successModal').classList.remove('hidden');
+
+            // Reset Form State
+            document.getElementById('aduanForm').reset();
+            pendingAduanData = null;
+            backToForm();
+        }
+
+        function closeModal() {
+            document.getElementById('successModal').classList.add('hidden');
+        }
+
+        // Carian Status Aduan
+        async function handleSearch(event) {
+            event.preventDefault();
+            await fetchSheetData();
+
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            const resultsContainer = document.getElementById('searchResults');
+
+            const filtered = aduanList.filter(item => 
+                (item.id && item.id.toLowerCase().includes(query)) || 
+                (item.no_fon && item.no_fon.replaceAll('-', '').includes(query.replaceAll('-', '')))
+            );
+
+            if (filtered.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="p-6 bg-red-100 neo-border text-center font-bold">
+                        <i class="fa-solid fa-circle-exclamation text-2xl text-red-600 mb-1 block"></i>
+                        Tiada rekod aduan dijumpai untuk "${query}".
+                    </div>
+                `;
+                return;
+            }
+
+            resultsContainer.innerHTML = filtered.map(item => `
+                <div class="bg-white neo-border p-5 shadow-neo space-y-3">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b-2 border-black">
+                        <div>
+                            <span class="text-xs font-extrabold uppercase text-gray-500">No Rujukan</span>
+                            <h4 class="font-heading font-black text-xl">${item.id}</h4>
+                        </div>
+                        ${getStatusBadge(item.status)}
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-semibold">
+                        <div><span class="text-gray-500 uppercase block">Pengadu:</span> ${item.nama}</div>
+                        <div><span class="text-gray-500 uppercase block">Kategori:</span> ${item.jenis_aduan}</div>
+                        <div><span class="text-gray-500 uppercase block">Tarikh:</span> ${item.tarikh}</div>
+                    </div>
+
+                    <div class="bg-gray-100 neo-border p-3 text-xs font-medium">
+                        <span class="font-bold block uppercase text-gray-700 mb-1">Keterangan:</span>
+                        "${item.keterangan}"
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusBadge(status) {
+            let color = 'bg-brand-pink';
+            if (status === 'Sedang Diproses') color = 'bg-brand-purple';
+            if (status === 'Selesai') color = 'bg-brand-lime';
+
+            return `
+                <span class="${color} neo-border px-3 py-1 text-xs font-black uppercase tracking-wider shadow-neo-sm">
+                    ${status || 'Baru'}
+                </span>
+            `;
+        }
+
+        // Render Admin Table
+        function renderAdminTable() {
+            const tbody = document.getElementById('adminTableBody');
+            
+            if (!aduanList || aduanList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center font-bold">Tiada sebarang aduan dikemukakan.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = aduanList.map(item => `
+                <tr class="hover:bg-yellow-50 transition-colors">
+                    <td class="p-3 font-bold border-r border-black">${item.id || '-'}</td>
+                    <td class="p-3 border-r border-black font-bold">${item.nama || '-'}</td>
+                    <td class="p-3 border-r border-black text-xs">
+                        <div><i class="fa-solid fa-phone mr-1"></i>${item.no_fon || '-'}</div>
+                        <div class="text-gray-600"><i class="fa-solid fa-envelope mr-1"></i>${item.email || '-'}</div>
+                    </td>
+                    <td class="p-3 border-r border-black text-xs font-bold">${item.jenis_aduan || '-'}</td>
+                    <td class="p-3 border-r border-black text-xs max-w-xs truncate">${item.keterangan || '-'}</td>
+                    <td class="p-3 border-r border-black">${getStatusBadge(item.status)}</td>
+                    <td class="p-3 text-center space-x-1">
+                        <select onchange="updateStatus('${item.id}', this.value)" class="neo-input px-2 py-1 text-xs font-bold bg-white cursor-pointer">
+                            <option value="Baru" ${item.status === 'Baru' ? 'selected' : ''}>Baru</option>
+                            <option value="Sedang Diproses" ${item.status === 'Sedang Diproses' ? 'selected' : ''}>Diproses</option>
+                            <option value="Selesai" ${item.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
+                        </select>
+                        <button onclick="deleteAduan('${item.id}')" class="bg-brand-pink neo-btn p-1.5 text-xs font-bold" title="Padam">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStatus(id, newStatus) {
+            const index = aduanList.findIndex(item => item.id === id);
+            if (index !== -1) {
+                aduanList[index].status = newStatus;
+                saveData();
+            }
+        }
+
+        function deleteAduan(id) {
+            if (confirm(`Adakah anda pasti untuk memadam aduan ${id}?`)) {
+                aduanList = aduanList.filter(item => item.id !== id);
+                saveData();
+            }
+        }
+
+        function updateAdminStats() {
+            document.getElementById('stat-total').textContent = aduanList.length;
+            document.getElementById('stat-baru').textContent = aduanList.filter(i => i.status === 'Baru').length;
+            document.getElementById('stat-proses').textContent = aduanList.filter(i => i.status === 'Sedang Diproses').length;
+            document.getElementById('stat-selesai').textContent = aduanList.filter(i => i.status === 'Selesai').length;
+        }
+
+        // Initial Setup
+        window.onload = function() {
+            saveData();
+            fetchSheetData();
+        };
+    </script>
+</body>
+</html>
