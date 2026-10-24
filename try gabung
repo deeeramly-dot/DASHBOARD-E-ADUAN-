@@ -1,0 +1,249 @@
+/**
+ * e-Aduan Master Aggregator (Google Apps Script)
+ *
+ * Baca beberapa Google Sheet, seragamkan kolum/kategori/status ikut skema standard,
+ * dan hantar sebagai satu JSON kepada master dashboard.
+ *
+ * SETUP:
+ * 1. Isi sheetId setiap sumber dalam CONFIG.SOURCES (ID ada dalam URL Sheet: /d/<ID>/edit).
+ * 2. Pemilik setiap Sheet kena share kepada akaun Google yang jalankan script ini (Viewer cukup).
+ * 3. Project Settings > Script Properties > tambah ADMIN_PASSWORD (kata laluan admin).
+ * 4. Project Settings > Time zone > Asia/Kuala_Lumpur.
+ * 5. Jalankan diagnose() sekali dan semak Logs. Kalau ada kolum "TIDAK DIJUMPAI", isi nama
+ *    header sebenar dalam columns: { medan: 'Nama Header' } untuk sumber tersebut.
+ * 6. Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone.
+ *    (Anyone diperlukan sebab dashboard di GitHub Pages; keselamatan dijaga oleh ADMIN_PASSWORD.)
+ *    Salin URL /exec ke CONFIG.API_URL dalam dashboard.
+ * Setiap kali ubah kod, buat New version pada deployment.
+ */
+
+const CONFIG = {
+  SOURCES: [
+    { name: 'Link 1', sheetId: 'GANTI_ID_SHEET_LINK_1', tab: '', columns: {} },
+    { name: 'Link 2', sheetId: 'GANTI_ID_SHEET_LINK_2', tab: '', columns: {} },
+    { name: 'Link 3', sheetId: 'GANTI_ID_SHEET_LINK_3', tab: '', columns: {} }
+  ],
+  CACHE_SECONDS: 120,   // hasil disimpan sementara supaya Sheet tak dibaca setiap kali
+  MAX_FAILS: 5,         // bilangan kata laluan salah sebelum dikunci
+  LOCK_SECONDS: 600     // tempoh kunci (saat)
+};
+
+// Nama header yang dikenali (huruf kecil, simbol diabaikan). Tambah jika header anda berbeza.
+const ALIASES = {
+  id_asal: ['no rujukan', 'id aduan', 'id', 'tiket', 'nombor tiket', 'ticket', 'rujukan'],
+  tarikh_hantar: ['tarikh', 'tarikh terimaan', 'tarikh hantar', 'timestamp', 'cap masa', 'masa hantar'],
+  nama: ['nama', 'nama penuh', 'pengadu'],
+  telefon: ['telefon', 'no telefon', 'nombor telefon', 'no tel'],
+  emel: ['emel', 'e-mel', 'email', 'alamat emel'],
+  kategori_asal: ['jenis aduan', 'kategori', 'kategori aduan', 'kategori jenis aduan'],
+  keterangan: ['keterangan', 'keterangan aduan', 'deskripsi', 'deskripsi aduan', 'butiran', 'butiran aduan'],
+  lokasi: ['lokasi', 'tempat', 'tempat lokasi'],
+  tarikh_kejadian: ['tarikh hari', 'tarikh kejadian', 'hari'],
+  masa_kejadian: ['masa', 'masa kejadian'],
+  status_asal: ['status']
+};
+
+/* ===================== Titik masuk web app ===================== */
+
+function doPost(e) {
+  try {
+    const req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const auth = checkAuth_(req.token);
+    if (auth === 'locked') return json_({ ok: false, error: 'Terlalu banyak percubaan. Cuba lagi sebentar.' });
+    if (auth !== 'ok') return json_({ ok: false, error: 'Kata laluan salah' });
+    if (req.action !== 'list') return json_({ ok: false, error: 'Tindakan tidak dikenali' });
+    return json_(getData_(req.refresh === true));
+  } catch (err) {
+    console.error(err);
+    return json_({ ok: false, error: 'Ralat server' });
+  }
+}
+
+function doGet() {
+  return json_({ ok: false, error: 'Gunakan POST' });
+}
+
+function json_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ===================== Pengesahan ===================== */
+
+function checkAuth_(token) {
+  const pw = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD');
+  if (!pw) throw new Error('ADMIN_PASSWORD belum ditetapkan');
+  const cache = CacheService.getScriptCache();
+  const fails = Number(cache.get('fails') || 0);
+  if (fails >= CONFIG.MAX_FAILS) return 'locked';
+  if (safeEq_(String(token || ''), pw)) { cache.remove('fails'); return 'ok'; }
+  cache.put('fails', String(fails + 1), CONFIG.LOCK_SECONDS);
+  return 'bad';
+}
+
+function safeEq_(a, b) {
+  if (a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+
+/* ===================== Data & cache ===================== */
+
+function getData_(force) {
+  if (!force) {
+    const hit = cacheGet_('master');
+    if (hit) return JSON.parse(hit);
+  }
+  let data = [];
+  const errors = [];
+  CONFIG.SOURCES.forEach(function (src) {
+    try {
+      data = data.concat(readSource_(src));
+    } catch (err) {
+      console.error(src.name, err);
+      errors.push(src.name + ': gagal dibaca');
+    }
+  });
+  const result = { ok: true, data: data, errors: errors, generated: new Date().toISOString() };
+  if (!errors.length) cachePut_('master', JSON.stringify(result));
+  return result;
+}
+
+function cachePut_(key, str) {
+  const size = 30000, n = Math.ceil(str.length / size), o = {};
+  for (let i = 0; i < n; i++) o[key + '_' + i] = str.substr(i * size, size);
+  o[key + '_n'] = String(n);
+  CacheService.getScriptCache().putAll(o, CONFIG.CACHE_SECONDS);
+}
+
+function cacheGet_(key) {
+  const c = CacheService.getScriptCache();
+  const n = Number(c.get(key + '_n'));
+  if (!n) return null;
+  const keys = [];
+  for (let i = 0; i < n; i++) keys.push(key + '_' + i);
+  const o = c.getAll(keys);
+  let s = '';
+  for (let i = 0; i < keys.length; i++) {
+    if (o[keys[i]] == null) return null;
+    s += o[keys[i]];
+  }
+  return s;
+}
+
+/* ===================== Baca & seragamkan satu sumber ===================== */
+
+function readSource_(src) {
+  const sh = openSheet_(src);
+  const vals = sh.getDataRange().getValues();
+  if (vals.length < 2) return [];
+  const m = mapHeaders_(vals[0], src.columns);
+  const tz = Session.getScriptTimeZone();
+  const get = function (row, f) { return m[f] >= 0 ? row[m[f]] : ''; };
+  const out = [];
+  for (let i = 1; i < vals.length; i++) {
+    const r = vals[i];
+    if (r.every(function (c) { return c === '' || c === null; })) continue;
+    const id = String(get(r, 'id_asal') || ('BARIS' + (i + 1))).trim();
+    const katAsal = String(get(r, 'kategori_asal') || '').trim();
+    const stAsal = String(get(r, 'status_asal') || '').trim();
+    // telefon dan emel sengaja tidak dihantar kepada dashboard (kurangkan pendedahan data peribadi).
+    out.push({
+      kunci_unik: src.name + '_' + id,
+      sumber: src.name,
+      id_asal: id,
+      tarikh_hantar: toIso_(get(r, 'tarikh_hantar')),
+      nama: String(get(r, 'nama') || '').trim(),
+      kategori_asal: katAsal,
+      kategori_standard: stdCategory_(katAsal),
+      keterangan: String(get(r, 'keterangan') || '').trim(),
+      lokasi: String(get(r, 'lokasi') || '').trim(),
+      tarikh_kejadian: fmt_(get(r, 'tarikh_kejadian'), 'dd/MM/yyyy', tz),
+      masa_kejadian: fmt_(get(r, 'masa_kejadian'), 'HH:mm', tz),
+      status_asal: stAsal,
+      status_standard: stdStatus_(stAsal)
+    });
+  }
+  return out;
+}
+
+function openSheet_(src) {
+  const ss = SpreadsheetApp.openById(src.sheetId);
+  const sh = src.tab ? ss.getSheetByName(src.tab) : ss.getSheets()[0];
+  if (!sh) throw new Error('Tab tidak dijumpai');
+  return sh;
+}
+
+function norm_(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function mapHeaders_(headers, overrides) {
+  const nh = headers.map(norm_);
+  const map = {};
+  Object.keys(ALIASES).forEach(function (f) {
+    let idx = -1;
+    if (overrides && overrides[f]) idx = nh.indexOf(norm_(overrides[f]));
+    if (idx < 0) {
+      for (let i = 0; i < ALIASES[f].length && idx < 0; i++) idx = nh.indexOf(norm_(ALIASES[f][i]));
+    }
+    map[f] = idx;
+  });
+  return map;
+}
+
+/* ===================== Pemetaan kategori & status ===================== */
+
+function stdCategory_(raw) {
+  const t = String(raw || '').toLowerCase();
+  if (t.indexOf('sistem') >= 0) return 'Isu Sistem/IT';
+  if (/infra|kemudahan|jalan/.test(t)) return 'Infrastruktur';
+  if (/bersih|sampah/.test(t)) return 'Kebersihan';
+  if (/perkhidmatan|kaunter/.test(t)) return 'Perkhidmatan';
+  if (/selamat|tenteram|bising/.test(t)) return 'Keselamatan & Ketenteraman';
+  return 'Lain-lain';
+}
+
+function stdStatus_(raw) {
+  const t = String(raw || '').toLowerCase();
+  if (t.indexOf('tolak') >= 0) return 'Ditolak';
+  if (t.indexOf('selesai') >= 0) return 'Selesai';
+  if (t.indexOf('proses') >= 0) return 'Dalam Proses';
+  return 'Baru'; // Baru, Pending, atau kosong
+}
+
+/* ===================== Tarikh & masa ===================== */
+
+// Teks tarikh ditafsir sebagai DD/MM/YYYY (format Malaysia), bukan MM/DD/YYYY.
+function toIso_(v) {
+  if (v instanceof Date) return isNaN(v) ? '' : v.toISOString();
+  const s = String(v || '').trim();
+  if (!s) return '';
+  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:[ T,]+(\d{1,2}):(\d{2}))?/);
+  if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), Number(m[4] || 0), Number(m[5] || 0)).toISOString();
+  const d = new Date(s);
+  return isNaN(d) ? '' : d.toISOString();
+}
+
+function fmt_(v, pattern, tz) {
+  if (v instanceof Date) return isNaN(v) ? '' : Utilities.formatDate(v, tz, pattern);
+  return String(v || '').trim();
+}
+
+/* ===================== Alat bantu: jalankan dari editor ===================== */
+
+function diagnose() {
+  CONFIG.SOURCES.forEach(function (src) {
+    try {
+      const vals = openSheet_(src).getDataRange().getValues();
+      const m = mapHeaders_(vals[0] || [], src.columns);
+      Logger.log('== ' + src.name + ' (' + Math.max(0, vals.length - 1) + ' baris) ==');
+      Logger.log('Header: ' + JSON.stringify(vals[0]));
+      Object.keys(m).forEach(function (f) {
+        Logger.log('  ' + f + ' -> ' + (m[f] >= 0 ? '"' + vals[0][m[f]] + '"' : 'TIDAK DIJUMPAI'));
+      });
+    } catch (err) {
+      Logger.log('== ' + src.name + ' == GAGAL: ' + err.message);
+    }
+  });
+}
